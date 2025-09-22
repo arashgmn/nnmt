@@ -420,7 +420,8 @@ def _nu0_dPhi(mu, sigma, V_0_rel, V_th_rel, tau_m, tau_r):
     assert y_th.ndim == y_r.ndim == 1
 
     # determine order of quadrature
-    params = {'start_order': 10, 'epsrel': 1e-12, 'maxiter': 10}
+    # params = {'start_order': 10, 'epsrel': 1e-12, 'maxiter': 10}
+    params = {'start_order': 10, 'epsrel': 1e-7, 'maxiter': 15}
     gl_order = _get_erfcx_integral_gl_order(y_th=y_th, y_r=y_r, **params)
 
     # separate domains

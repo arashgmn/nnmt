@@ -152,7 +152,8 @@ def _firing_rates(J, K, V_0_rel, V_th_rel, tau_m, tau_r, J_ext, K_ext, nu_ext,
 
 
 @_check_positive_params
-def _firing_rates_for_given_input(mu, sigma, V_0_rel, V_th_rel, tau_m, tau_r):
+def _firing_rates_for_given_input(mu, sigma, V_0_rel, V_th_rel, tau_m, tau_r,
+                                  debug=False):
     """
     Calculates stationary firing rate for delta shaped PSCs.
 
@@ -198,8 +199,16 @@ def _firing_rates_for_given_input(mu, sigma, V_0_rel, V_th_rel, tau_m, tau_r):
     if np.any(V_th_rel - V_0_rel < 0):
         raise ValueError('V_th should be larger than V_0!')
 
+    if debug:
+        print('*' * 10)
+        print(f'mu = {mu}')
+        print(f'sigma = {sigma}')
+        print(f'y_th = {y_th}')
+        print(f'y_r = {y_r}')
+        
     # determine order of quadrature
-    params = {'start_order': 10, 'epsrel': 1e-12, 'maxiter': 10}
+    # params = {'start_order': 10, 'epsrel': 1e-12, 'maxiter': 10}
+    params = {'start_order': 10, 'epsrel': 1e-7, 'maxiter': 15}
     gl_order = _get_erfcx_integral_gl_order(y_th=y_th, y_r=y_r, **params)
 
     # separate domains
@@ -233,12 +242,15 @@ def _firing_rates_for_given_input(mu, sigma, V_0_rel, V_th_rel, tau_m, tau_r):
         return nu
 
 
-def _get_erfcx_integral_gl_order(y_th, y_r, start_order, epsrel, maxiter):
+def _get_erfcx_integral_gl_order(y_th, y_r, start_order, epsrel, maxiter,
+                                 verbose=True):
     """Determine order of Gauss-Legendre quadrature for erfcx integral."""
     # determine maximal integration range
     a = min(np.abs(y_th).min(), np.abs(y_r).min())
     b = max(np.abs(y_th).max(), np.abs(y_r).max())
 
+    # print(f'a = {a}  b = {b}')
+    
     # adaptive quadrature from scipy.integrate for comparison
     I_quad = _quad(_erfcx, a, b, epsabs=0, epsrel=epsrel)[0]
 
@@ -250,7 +262,10 @@ def _get_erfcx_integral_gl_order(y_th, y_r, start_order, epsrel, maxiter):
         if rel_error < epsrel:
             return order
         else:
+            if verbose:
+                print(f'iter {_}: order={order}  error={rel_error}')
             order *= 2
+                
     msg = f'Quadrature search failed to converge after {maxiter} iterations. '
     msg += f'Last relative error {rel_error:e}, desired {epsrel:e}.'
     raise RuntimeError(msg)

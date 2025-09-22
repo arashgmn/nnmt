@@ -77,20 +77,31 @@ def _firing_rate_integration(firing_rate_func, firing_rate_params,
         problem for the method `ODE`. Default is 1000.
     """
 
-    def get_rate_difference(_, nu, rate_func):
+    def get_rate_difference(_, nu, rate_func, relaxation=1):
         """
         Calculate difference between new iteration step and previous one.
         """
         # new inputs
         inputs = {}
 
+        # It could be that round-off errors renders nus negative. One might
+        # want to apply a clipping function inside rate_func. But surprisingly, 
+        # the round-off error leaks here (not sure why). In any case, we just
+        # simply apply a clip here to ensure eveything is OK. 
+        # (A negative nu results in negative variance ...)
+        nu = np.clip(nu, 0, None)
+        
         for key, input in input_dict.items():
             inputs[key] = input['func'](nu, **input['params'])
 
         # new rate
         new_nu = rate_func(**{**firing_rate_params, **inputs})
-
-        return -nu + new_nu
+        
+        # same as above
+        new_nu = np.clip(new_nu, 0, None)
+        
+        # relaxation for stability (in the expense of more iteration)
+        return -nu + relaxation * new_nu
 
     get_rate_difference = partial(get_rate_difference,
                                   rate_func=firing_rate_func)
